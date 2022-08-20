@@ -5,7 +5,7 @@ from typing import List
 from fastapi import FastAPI
 from fastapi import status
 #TwitterApi
-from models import Tweet,User,UserLogin
+from models import Tweet,User,UserLogin,UserRegister
 
 app=FastAPI()
 
@@ -21,6 +21,22 @@ app=FastAPI()
     tags=["Users"]
     )
 def signup():
+    """
+    Signup
+    
+    this path operation register a user in the app
+
+    Parameters:
+    - Request Body Parameter
+        -user:UserRegister
+    
+    Returns a Json with the basic user information:
+        -user_id:UUID
+        -email:EmailStr
+        -first_name:str
+        -last_name:str
+        - birth_date:date
+    """
     pass
 ###Login a user
 @app.post(

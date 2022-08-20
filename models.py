@@ -49,6 +49,8 @@ class UserLogin(UserBase):
         max_length=16,
         example="Moises123"
         )
+class UserRegister(UserLogin,User):
+    pass
 
 class Tweet(BaseModel):
     id:UUID=Field(...)
