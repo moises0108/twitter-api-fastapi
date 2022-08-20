@@ -1,5 +1,5 @@
 #Python
-from datetime import date
+from datetime import date,datetime
 from uuid import UUID
 from typing import Optional
 #Pydantic
@@ -44,7 +44,6 @@ class User(UserBase):
             raise ValueError("Must be over 18")
         else:
             return birth_date
-
 class UserLogin(UserBase):
     password:str = Field(
         ...,
@@ -52,8 +51,13 @@ class UserLogin(UserBase):
         max_length=16,
         example="Moises123"
         )
+
 class Tweet(BaseModel):
-    pass
+    id:UUID=Field(...)
+    by:User = Field(...)
+    content:str=Field(...,min_length=1,max_length=256)
+    created_at:datetime = Field(default=datetime.now())
+    update_now:Optional[datetime] = Field(default=None) 
 
 
 @app.get(path="/")
