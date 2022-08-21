@@ -64,10 +64,10 @@ class UserRegister(UserLogin,User):
     pass
 
 class Tweet(BaseModel):
-    id:UUID=Field(...)
+    tweet_id:UUID=Field(...)
     by:User = Field(...)
     content:str=Field(...,min_length=1,max_length=256)
     created_at:datetime = Field(default=datetime.now())
-    update_now:Optional[datetime] = Field(default=None) 
+    updated_at:Optional[datetime] = Field(default=None) 
 
 
