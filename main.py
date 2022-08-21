@@ -33,13 +33,14 @@ def signup(user:UserRegister=Body(...)):
         - user:UserRegister
     
     Returns a Json with the basic user information:
+    
         - user_id:UUID
         - email:EmailStr
         - first_name:str
         - last_name:str
         - birth_date:date
     """
-    with open("users.json","r+",encoding="UTF-8") as f:
+    with open("users.json","r+",encoding="utf-8") as f:
         results=json.loads(f.read())
         user_dict=user.dict()
         user_dict['user_id']=str(user_dict['user_id'])
@@ -67,7 +68,23 @@ def login():
     tags=["Users"]
     )
 def show_all_users():
-    pass
+    """
+    This path operation shows all user in the app
+
+    Parameters:
+        -None
+
+    Returns a json list with all users in the app,with the following keys:
+    
+        - user_id:UUID
+        - email:EmailStr
+        - first_name:str
+        - last_name:str
+        - birth_date:date
+    """
+    with open("users.json","r",encoding="utf-8") as f:
+        results=json.loads(f.read())
+        return results
 ###Show a User
 @app.get(
     path="/users/{user_id}",
