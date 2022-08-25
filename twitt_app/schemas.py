@@ -1,7 +1,5 @@
 #Python
-from datetime import date,datetime
-from multiprocessing.sharedctypes import Value
-from uuid import UUID
+from datetime import date
 from typing import Optional
 #Pydantic
 from pydantic import BaseModel
@@ -9,12 +7,12 @@ from pydantic import Field
 from pydantic import EmailStr
 from pydantic import ValidationError,validator
 #Fast API
-
+#twitterapi
+from .database import Base
 
 
 #Models
 class UserBase(BaseModel):
-    user_id:UUID = Field(...)
     email:EmailStr = Field(
         ...,
         example="moisespatinoh@gmail.com"
@@ -32,7 +30,11 @@ class User(UserBase):
         max_length=50,
         example="Patino"
         )
+    
     birth_date : Optional[date] = Field(default=None,example="2000-08-01")
+    
+    class Config:
+        orm_mode = True
     
     @validator('birth_date')
     def is_adult(cls,birth_date:date):
@@ -52,7 +54,6 @@ def over_18(birth_date,today_date):
 
     return birth_date
 
-
 class UserLogin(UserBase):
     password:str = Field(
         ...,
@@ -63,11 +64,14 @@ class UserLogin(UserBase):
 class UserRegister(UserLogin,User):
     pass
 
-class Tweet(BaseModel):
-    tweet_id:UUID=Field(...)
-    by:User = Field(...)
+
+class BaseTweet(BaseModel):
     content:str=Field(...,min_length=1,max_length=256)
-    created_at:datetime = Field(default=datetime.now())
-    updated_at:Optional[datetime] = Field(default=None) 
+class CreateTweet(BaseTweet):
+    owner_id:int = Field(...)
+    
+    class Config:
+        orm_mode = True
 
-
+class Tweet(BaseTweet,UserBase):
+    pass

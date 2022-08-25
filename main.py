@@ -4,13 +4,26 @@ import json
 #Pydantic
 #FastApi
 from fastapi import FastAPI
-from fastapi import status
-from fastapi import Body
+from fastapi import status,HTTPException
+from fastapi import Body,Depends,Path
 #TwitterApi
-from models import Tweet,User,UserLogin,UserRegister
+
+from twitt_app.database import SessionLocal,engine
+from twitt_app.schemas import Tweet,User,UserLogin,UserRegister,CreateTweet
+from twitt_app import crud,models
+#SqlAlchemy
+from sqlalchemy.orm import Session
+
 
 app=FastAPI()
-
+models.Base.metadata.create_all(bind=engine)
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 #PathOperation
 
 ##Users
@@ -22,7 +35,7 @@ app=FastAPI()
     summary="Register a User",
     tags=["Users"]
     )
-def signup(user:UserRegister=Body(...)):
+def signup(user:UserRegister=Body(...),db: Session = Depends(get_db)):
     """
     Signup
 
@@ -34,21 +47,16 @@ def signup(user:UserRegister=Body(...)):
     
     Returns a Json with the basic user information:
     
-        - user_id:UUID
         - email:EmailStr
         - first_name:str
         - last_name:str
         - birth_date:date
     """
-    with open("users.json","r+",encoding="utf-8") as f:
-        results=json.loads(f.read())
-        user_dict=user.dict()
-        user_dict['user_id']=str(user_dict['user_id'])
-        user_dict['birth_date']=str(user_dict['birth_date'])
-        results.append(user_dict)
-        f.seek(0)
-        f.write(json.dumps(results))
-        return user
+    db_user = crud.get_user_by_email(db, email=user.email)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    return crud.create_user(db=db, user=user)
+    
 ###Login a user
 @app.post(
     path="/login",
@@ -57,8 +65,24 @@ def signup(user:UserRegister=Body(...)):
     summary="Login a user",
     tags=["Users"]
     )
-def login():
-    pass
+def login(db: Session = Depends(get_db),user:UserLogin=Body(...)):
+    """
+    Login
+
+    this path operation login a user in the app
+
+    Parameters:
+    - Request Body Parameter
+        - user:UserLogin
+    
+    Returns a Json with the basic user information:
+    
+        - email:EmailStr
+        - first_name:str
+        - last_name:str
+        - birth_date:date
+    """
+    return crud.login_user(db=db,user=user)
 ###Show all Users
 @app.get(
     path="/users",
@@ -67,7 +91,7 @@ def login():
     summary="Show all the users",
     tags=["Users"]
     )
-def show_all_users():
+def show_all_users(db: Session = Depends(get_db)):
     """
     This path operation shows all user in the app
 
@@ -76,25 +100,48 @@ def show_all_users():
 
     Returns a json list with all users in the app,with the following keys:
     
-        - user_id:UUID
         - email:EmailStr
         - first_name:str
         - last_name:str
         - birth_date:date
     """
-    with open("users.json","r",encoding="utf-8") as f:
-        results=json.loads(f.read())
-        return results
+    return crud.get_users(db=db)
 ###Show a User
 @app.get(
     path="/users/{user_id}",
     response_model=User,
     status_code=status.HTTP_200_OK,
     summary="Show a User",
-    tags=["Users"]
+    tags=["Users"],
+    
     )
-def show_a_user():
-    pass
+def show_a_user(
+    user_id:int = Path(
+        ...,
+        gt=0,
+        title="Person id",
+        description="show a User with this id",
+        example=1,
+        ),
+    db:Session=Depends(get_db)
+    ):
+    """
+    Show a User
+
+    this path operation show a user in the app
+
+    Parameters:
+    - Request Path Parameter
+        - user_id
+    
+    Returns a Json with the basic user information:
+    
+        - email:EmailStr
+        - first_name:str
+        - last_name:str
+        - birth_date:date
+    """
+    return crud.get_user(db=db,user_id=user_id)
 ###Delete a User
 @app.delete(
     path="/users/{user_id}/delete",
@@ -125,7 +172,7 @@ def update_a_user():
     summary="Show all the tweets",
     tags=["Tweet"]
     )
-def home():
+def home(db:Session = Depends(get_db)):
     """
     Home
     This path operation shows all tweets in the app
@@ -133,7 +180,7 @@ def home():
     Parameters:
         -None
 
-    Returns a json list with all the tweerts in the app,with the following keys:
+    Returns a json list with all the tweets in the app,with the following keys:
     
         - tweet_id:UUID
         - by:User 
@@ -141,9 +188,7 @@ def home():
         - created_at:datetime 
         - updated_at:Optional[datetime]
     """
-    with open("tweets.json","r",encoding="utf-8") as f:
-        results=json.loads(f.read())
-        return results
+    return crud.get_tweet(db=db)
 ###Post a tweet
 @app.post(
     path="/post",
@@ -152,37 +197,21 @@ def home():
     summary="Post a tweet",
     tags=["Tweet"]
     )
-def post_a_tweet(tweet: Tweet = Body(...)):
+def post_a_tweet(tweet: CreateTweet = Body(...),db:Session=Depends(get_db),):
     """
-    Signup
+    Post a Tweet
 
     this path operation post a tweet in the app
 
     Parameters:
     - Request Body Parameter
-        - tweet:Tweet
+        - tweet:CreateTweet
     
     Returns a Json with the basic tweet information:
-    
-    - tweet_id:UUID
-    - by:User
+    - email:EmailStr
     - content:str
-    - created_at:datetime
-    - updated_at:Optional[datetime]
     """
-    with open("tweets.json","r+",encoding="utf-8") as f:
-        results=json.loads(f.read())
-        tweet_dict=tweet.dict()
-        tweet_dict['tweet_id']=str(tweet_dict['tweet_id'])
-        tweet_dict['created_at']=str(tweet_dict['created_at'])
-        tweet_dict['updated_at']=str(tweet_dict['updated_at'])
-
-        tweet_dict['by']['user_id']=str(tweet_dict['by']['user_id'])
-        tweet_dict["by"]['birth_date']=str(tweet_dict["by"]['birth_date'])
-        results.append(tweet_dict)
-        f.seek(0)
-        f.write(json.dumps(results))
-        return tweet
+    return crud.create_user_tweet(db=db,tweet=tweet)
 
 ###Show a tweet
 @app.get(
