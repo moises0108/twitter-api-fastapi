@@ -109,4 +109,6 @@ class UpdateUser(SQLModel):
         if birth_date==None:
             return None
         return over_18(birth_date,today_date)
-    
+
+class UpdateTweet(SQLModel):
+    content:Optional[str]=Field(default=None,min_length=1,max_length=256)

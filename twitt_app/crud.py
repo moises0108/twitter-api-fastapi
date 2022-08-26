@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from . import models, schemas
 
-
+#Users
 def get_user(db: Session, user_id: int):
     have_user=db.query(models.User).get(user_id)
     if not have_user:
@@ -37,6 +37,7 @@ def create_user(db: Session, user: schemas.UserRegister):
     db.refresh(db_user)
     return db_user
 
+
 def login_user(db: Session,user: schemas.UserLogin):
     take_user=db.query(models.User).filter(models.User.email==user.email).first()
     if not take_user :
@@ -45,18 +46,19 @@ def login_user(db: Session,user: schemas.UserLogin):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
     return {'msg':'Login succesfull!!'}
 
+
 def delete_user(db:Session,user_id:int):
     db.query(models.User).filter(models.User.id==user_id).delete()
     db.commit()
     return {'msg':'User '+str(user_id)+' delete succesfull'}
     
+
 def update_user(db:Session,user_id:int,user:schemas.UpdateUser):
     db_item=get_user(db,user_id)
     updated_user=user.dict(exclude_unset=True)
 
     for key,value in updated_user.items():
         if value!=None:
-            print(value)
             setattr(db_item,key,value)
 
     db.add(db_item)
@@ -64,6 +66,8 @@ def update_user(db:Session,user_id:int,user:schemas.UpdateUser):
     db.refresh(db_item)
     return db_item
 
+
+#Tweets
 def get_tweet(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Tweet).offset(skip).limit(limit).all()
 
@@ -80,6 +84,7 @@ def create_user_tweet(db: Session, tweet: schemas.CreateTweet):
 
     return tweet_create
 
+
 def show_tweet(db:Session,tweet_id:int):
     get_tweet=db.query(models.Tweet).get(tweet_id)
     print(type(get_tweet))
@@ -87,5 +92,26 @@ def show_tweet(db:Session,tweet_id:int):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     get_user_email=db.query(models.User).get(get_tweet.user_id).email
     result={'content': get_tweet.content,'email': get_user_email}
-    print(result)
     return  result
+
+
+def delete_tweet(db:Session,tweet_id:int):
+    db.query(models.Tweet).filter(models.Tweet.id==tweet_id).delete()
+    db.commit()
+    return {'msg':'Tweet '+str(tweet_id)+' delete succesfull'}
+
+
+def update_tweet(db:Session,tweet_id:int,tweet:schemas.CreateTweet):
+    db_item=db.query(models.Tweet).get(tweet_id)
+    if not db_item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    updated_tweet=tweet.dict()
+    for key,value in updated_tweet.items():
+        if value!=None:
+            setattr(db_item,key,value)
+
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    get_email=db.query(models.User).get(db_item.user_id).email
+    return {'email': get_email,'content':tweet.content}
