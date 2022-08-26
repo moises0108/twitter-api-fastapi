@@ -9,11 +9,11 @@ from fastapi import Body,Depends,Path
 #TwitterApi
 
 from twitt_app.database import SessionLocal,engine
-from twitt_app.schemas import Tweet,User,UserLogin,UserRegister,CreateTweet
+from twitt_app.schemas import Tweet, UpdateUser,User,UserLogin,UserRegister,CreateTweet
 from twitt_app import crud,models
 #SqlAlchemy
 from sqlalchemy.orm import Session
-
+from sqlalchemy import event
 
 app=FastAPI()
 models.Base.metadata.create_all(bind=engine)
@@ -24,6 +24,7 @@ def get_db():
         yield db
     finally:
         db.close()
+event.listen(engine, 'connect', lambda c, _: c.execute('pragma foreign_keys=on'))
 #PathOperation
 
 ##Users
@@ -60,7 +61,6 @@ def signup(user:UserRegister=Body(...),db: Session = Depends(get_db)):
 ###Login a user
 @app.post(
     path="/login",
-    response_model=User,
     status_code=status.HTTP_200_OK,
     summary="Login a user",
     tags=["Users"]
@@ -75,12 +75,7 @@ def login(db: Session = Depends(get_db),user:UserLogin=Body(...)):
     - Request Body Parameter
         - user:UserLogin
     
-    Returns a Json with the basic user information:
-    
-        - email:EmailStr
-        - first_name:str
-        - last_name:str
-        - birth_date:date
+    Returns a Json with the message 'login succesful'
     """
     return crud.login_user(db=db,user=user)
 ###Show all Users
@@ -145,13 +140,21 @@ def show_a_user(
 ###Delete a User
 @app.delete(
     path="/users/{user_id}/delete",
-    response_model=User,
     status_code=status.HTTP_200_OK,
     summary="Delete a User",
     tags=["Users"]
     )
-def delete_a_user():
-    pass
+def delete_a_user(
+    user_id:int=Path(
+        ...,
+        gt=0,
+        title="user id",
+        description="id of the user you want delete",
+        example=2
+    ),
+    db:Session=Depends(get_db)
+):
+   return crud.delete_user(db=db,user_id=user_id)
 ###Update a User
 @app.put(
     path="/users/{user_id}/update",
@@ -160,8 +163,17 @@ def delete_a_user():
     summary="Update a User",
     tags=["Users"]
     )
-def update_a_user():
-    pass
+def update_a_user(
+    db:Session=Depends(get_db),
+    user_id:int=Path(
+        ...,
+        gt=0,
+        title="user_id",
+        description="id of the user you want update"
+        ),
+    user:UpdateUser=Body(...)
+    ):
+    return crud.update_user(db,user_id,user)
 
 ##Tweets
 ###Show all tweets
@@ -221,13 +233,31 @@ def post_a_tweet(tweet: CreateTweet = Body(...),db:Session=Depends(get_db),):
     summary="Show a tweet",
     tags=["Tweet"]
     )
-def show_a_tweet():
-    pass
+def show_a_tweet(
+    db:Session=Depends(get_db),
+    tweet_id:int=Path(
+        ...,gt=0,
+        title="tweet_id",
+        description="Id of the tweet that you want")
+        ):
+    """
+    Show a Tweet
 
+    this path operation show a tweet in the app
+
+    Parameters:
+    - Request Path Parameter
+        - tweet_id
+    
+    Returns a Json with the basic tweet information:
+    
+        - content:str
+        - userEmail:EmailStr
+    """
+    return crud.show_tweet(db,tweet_id)
 ###Delete a tweet
 @app.delete(
     path="/tweets/{tweet_id}/delete",
-    response_model=Tweet,
     status_code=status.HTTP_200_OK,
     summary="Delete a tweet",
     tags=["Tweet"]

@@ -16,15 +16,20 @@ class User(Base):
     last_name=Column(String)
     birth_date=Column(Date)
 
-    tweets= relationship("Tweet",back_populates="owner")
+    tweets= relationship(
+        "Tweet",
+        back_populates="users",
+        passive_deletes=True,
+        cascade="all, delete",
+        )
 
 class Tweet(Base):
     __tablename__="tweets"
     id = Column(Integer, primary_key=True, index=True)
-    content = Column(String, index=True)
+    content = Column(String)
     created_at = Column(DateTime,default=datetime.today())
     updated_at = Column(DateTime,default=datetime.today())
-    owner_id = Column(Integer, ForeignKey("users.id"))
 
-    owner = relationship("User", back_populates="tweets")
+    user_id = Column(Integer, ForeignKey("users.id",ondelete="CASCADE"))
+    users = relationship("User", back_populates="tweets")
     

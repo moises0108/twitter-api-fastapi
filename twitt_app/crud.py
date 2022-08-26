@@ -1,8 +1,9 @@
 
+from cgi import print_form
+from webbrowser import get
 from fastapi import HTTPException,status
 
 from sqlalchemy.orm import Session
-
 
 
 from . import models, schemas
@@ -38,28 +39,53 @@ def create_user(db: Session, user: schemas.UserRegister):
 
 def login_user(db: Session,user: schemas.UserLogin):
     take_user=db.query(models.User).filter(models.User.email==user.email).first()
-    print(take_user)
     if not take_user :
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     if take_user.password!=user.password:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
-    return take_user
+    return {'msg':'Login succesfull!!'}
+
+def delete_user(db:Session,user_id:int):
+    db.query(models.User).filter(models.User.id==user_id).delete()
+    db.commit()
+    return {'msg':'User '+str(user_id)+' delete succesfull'}
+    
+def update_user(db:Session,user_id:int,user:schemas.UpdateUser):
+    db_item=get_user(db,user_id)
+    updated_user=user.dict(exclude_unset=True)
+
+    for key,value in updated_user.items():
+        if value!=None:
+            print(value)
+            setattr(db_item,key,value)
+
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
 
 def get_tweet(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Tweet).offset(skip).limit(limit).all()
 
 
 def create_user_tweet(db: Session, tweet: schemas.CreateTweet):
-    exist_owner=db.query(models.User).filter(models.User.id==tweet.owner_id)
-
-    if not db.query(exist_owner.exists()).scalar():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    
+    get_user(db=db,user_id=tweet.user_id)
     db_item = models.Tweet(**tweet.dict())
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
     tweet_create=tweet.dict()
-    print((db.query(models.User).get(tweet.owner_id)).email)
-    tweet_create["email"]=((db.query(models.User).get(tweet.owner_id)).email)    
-    print(tweet_create)
+    tweet_create["email"]=((db.query(models.User).get(tweet.user_id)).email)    
+
     return tweet_create
+
+def show_tweet(db:Session,tweet_id:int):
+    get_tweet=db.query(models.Tweet).get(tweet_id)
+    print(type(get_tweet))
+    if not get_tweet:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    get_user_email=db.query(models.User).get(get_tweet.user_id).email
+    result={'content': get_tweet.content,'email': get_user_email}
+    print(result)
+    return  result

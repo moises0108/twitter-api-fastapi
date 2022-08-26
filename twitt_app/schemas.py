@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from pydantic import Field
 from pydantic import EmailStr
 from pydantic import ValidationError,validator
+from sqlmodel import SQLModel
 #Fast API
 #twitterapi
 from .database import Base
@@ -39,6 +40,8 @@ class User(UserBase):
     @validator('birth_date')
     def is_adult(cls,birth_date:date):
         today_date=date.today()
+        if birth_date==None:
+            return birth_date
         return over_18(birth_date,today_date)
 
 
@@ -68,10 +71,42 @@ class UserRegister(UserLogin,User):
 class BaseTweet(BaseModel):
     content:str=Field(...,min_length=1,max_length=256)
 class CreateTweet(BaseTweet):
-    owner_id:int = Field(...)
+    user_id:int = Field(...)
     
     class Config:
         orm_mode = True
 
 class Tweet(BaseTweet,UserBase):
     pass
+
+class UpdateUser(SQLModel):
+    first_name:Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=50,
+        example="Moises"
+        )
+    last_name:Optional[str]= Field(
+        default=None,
+        min_length=1,
+        max_length=50,
+        example="Patino"
+        )
+    email:Optional[EmailStr] = Field(
+        default=None,
+        example="moisespatinoh@gmail.com"
+    )
+    birth_date : Optional[date] = Field(default=None,example="2000-08-01")
+    password:Optional[str] = Field(
+        default=None,
+        min_length=8,
+        max_length=16,
+        example="Moises123"
+        )
+    @validator('birth_date')
+    def is_adult(cls,birth_date:date):
+        today_date=date.today()
+        if birth_date==None:
+            return None
+        return over_18(birth_date,today_date)
+    
