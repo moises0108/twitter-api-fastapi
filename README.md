@@ -1,7 +1,7 @@
 # twitter-api-fastapi
 ## Description
 
-Basi fastapi API to understand the fastapi framework
+Basic fastapi API to understand the fastapi framework
 ## Install and Run
 - install the package in [requeriments.txt](requeriments.txt)
 
